@@ -1,0 +1,32 @@
+{
+  "dependencies": {
+    "next": "^16.1.1",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.1",
+    "@testing-library/user-event": "^14.6.1",
+    "autoprefixer": "10.4.19",
+    "eslint": "8.57.0",
+    "eslint-config-next": "^16.1.1",
+    "jest": "^30.2.0",
+    "jest-environment-jsdom": "^30.2.0",
+    "msw": "^2.12.4",
+    "postcss": "8.4.38",
+    "tailwindcss": "3.4.3",
+    "whatwg-fetch": "^3.6.20"
+  },
+  "name": "app-todo",
+  "version": "1.0.0",
+  "description": "<pre> APP-TODO/ ├── backend/                   # Flask бэкенд-сервер │   ├── app.py                 # Основной файл приложения Flask (роуты API) │   ├── models.py              # Модели SQLAlchemy для таблицы gifts │   ├── database.py            # Конфигурация подключения к БД │   ├── requirements.txt       # Зависимости Python (Flask, SQLAlchemy, psycopg2) │   ├── .env.example           # Переменные окружения (DATABASE_URL) │    ├── frontend/                 # Next.js фронтенд-приложение │   ├── package.json          # Зависимости Node.js и скрипты │   ├── next.config.js        # Конфигурация Next.js │   ├── package-lock.json │   ├── postcss.config.js │   ├── tailwind.config.js │   ├── .env.local            # Переменные окружения (NEXT_PUBLIC_API_URL) │   ├── pages/                # Страницы Next.js │   │   ├── _app.js           # Главный компонент приложения │   │   ├── index.js          # Главная страница со списком подарков │   │   └── api/ │   │       └── gifts.js      # Прокси-роут для API (опционально) │   ├── components/           # React компоненты │   │   └── GiftList.js       # Компонент списка подарков (логика и UI) │   └── styles/               # Стили │       └── globals.css       # Глобальные CSS стили (Tailwind) │ └── README.md                 # Эта инструкция </pre>",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs"
+}

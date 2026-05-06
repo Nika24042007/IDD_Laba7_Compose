@@ -1,0 +1,13 @@
+node_modules/
+__pycache__/
+bin/
+*.log
+dist/
+build/
+.next/
+out/
+coverage/
+*.sqlite
+*.db
+venv/
+.coverage

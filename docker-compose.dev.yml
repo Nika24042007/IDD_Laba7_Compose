@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      target: production
+    environment:
+      FLASK_DEBUG: 1
+      FLASK_ENV: development
+    volumes:
+      - ./backend:/app
+      - backend-venv:/app/venv
+    command: flask run --host=0.0.0.0 --reload
+
+  frontend:
+    build:
+      context: ./frontend
+      target: development
+    environment:
+      NODE_ENV: development
+      CHOKIDAR_USEPOLLING: "true"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - frontend-npm-cache:/root/.npm
+    command: npm run dev
+    ports:
+      - "3000:3000"
+
+  postgres:
+    ports:
+      - "5432:5432"
+
+volumes:
+  backend-venv:
+  frontend-npm-cache:

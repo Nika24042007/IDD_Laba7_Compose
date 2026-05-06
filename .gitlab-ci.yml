@@ -1,0 +1,136 @@
+stages:
+  - lint
+  - test
+  - build
+  - publish
+  - deploy
+
+variables:
+  DOCKER_HUB_USERNAME: "vikabaz07"
+  DOCKER_HUB_NAMESPACE: "vikabaz07"
+  DOCKER_HUB_BACKEND_IMAGE: "$DOCKER_HUB_NAMESPACE/myapp-backend"
+  DOCKER_HUB_FRONTEND_IMAGE: "$DOCKER_HUB_NAMESPACE/myapp-frontend"
+  POSTGRES_DB: "test_db"
+  POSTGRES_USER: "postgres"
+  POSTGRES_PASSWORD: "postgres"
+  COVERAGE_THRESHOLD: "70"
+
+services:
+  - postgres:15-alpine
+
+cache:
+  paths:
+    - backend/.venv/
+    - frontend/node_modules/
+
+lint:
+  stage: lint
+  image: python:3.12
+  script:
+    - cd backend
+    - pip install black flake8
+    - black --check --diff .
+    - flake8 .
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+test:
+  stage: test
+  image: python:3.12
+  before_script:
+    - cd backend
+    - pip install -r requirements.txt pytest pytest-cov
+  script:
+    - |
+      pytest \
+        --junitxml=report.xml \
+        --cov=. \
+        --cov-report=xml \
+        --cov-report=term \
+        --cov-fail-under=$COVERAGE_THRESHOLD
+  coverage: '/TOTAL.* ([0-9]{1,3}%)/'
+  artifacts:
+    reports:
+      junit: backend/report.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: backend/coverage.xml
+    paths:
+      - backend/coverage.xml
+      - backend/report.xml
+    expire_in: 1 week
+
+build-backend:
+  stage: build
+  image: docker:24.0.5
+  services:
+    - docker:24.0.5-dind
+  before_script:
+    - docker login -u "$DOCKER_HUB_USERNAME" -p "$DOCKER_HUB_PASSWORD"
+  script:
+    - cd backend
+    - docker build -t "$DOCKER_HUB_BACKEND_IMAGE:$CI_COMMIT_SHA" .
+    - docker tag "$DOCKER_HUB_BACKEND_IMAGE:$CI_COMMIT_SHA" "$DOCKER_HUB_BACKEND_IMAGE:latest"
+  rules:
+    - if: $CI_COMMIT_BRANCH == "master"
+    - if: $CI_COMMIT_BRANCH == "develop"
+
+build-frontend:
+  stage: build
+  image: docker:24.0.5
+  services:
+    - docker:24.0.5-dind
+  before_script:
+    - docker login -u "$DOCKER_HUB_USERNAME" -p "$DOCKER_HUB_PASSWORD"
+  script:
+    - cd frontend
+    - docker build -t "$DOCKER_HUB_FRONTEND_IMAGE:$CI_COMMIT_SHA" .
+    - docker tag "$DOCKER_HUB_FRONTEND_IMAGE:$CI_COMMIT_SHA" "$DOCKER_HUB_FRONTEND_IMAGE:latest"
+  rules:
+    - if: $CI_COMMIT_BRANCH == "master"
+    - if: $CI_COMMIT_BRANCH == "develop"
+
+publish-backend:
+  stage: publish
+  image: docker:24.0.5
+  services:
+    - docker:24.0.5-dind
+  before_script:
+    - docker login -u "$DOCKER_HUB_USERNAME" -p "$DOCKER_HUB_PASSWORD"
+  script:
+    - docker push "$DOCKER_HUB_BACKEND_IMAGE:$CI_COMMIT_SHA"
+    - docker push "$DOCKER_HUB_BACKEND_IMAGE:latest"
+  needs: ["build-backend"]
+  rules:
+    - if: $CI_COMMIT_BRANCH == "master"
+
+publish-frontend:
+  stage: publish
+  image: docker:24.0.5
+  services:
+    - docker:24.0.5-dind
+  before_script:
+    - docker login -u "$DOCKER_HUB_USERNAME" -p "$DOCKER_HUB_PASSWORD"
+  script:
+    - docker push "$DOCKER_HUB_FRONTEND_IMAGE:$CI_COMMIT_SHA"
+    - docker push "$DOCKER_HUB_FRONTEND_IMAGE:latest"
+  needs: ["build-frontend"]
+  rules:
+    - if: $CI_COMMIT_BRANCH == "master"
+
+deploy:
+  stage: deploy
+  image: alpine:latest
+  script:
+    - echo "cd backend && python app.py"
+    - echo "cd frontend && npm run dev"
+    - echo "docker-compose up --build"
+  needs:
+    - publish-backend
+    - publish-frontend
+  rules:
+    - if: $CI_COMMIT_BRANCH == "master"
+      when: manual
+  environment:
+    name: production

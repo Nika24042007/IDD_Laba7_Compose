@@ -1,0 +1,77 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: app-todo-db
+    environment:
+      POSTGRES_DB: giftdb
+      POSTGRES_USER: giftuser
+      POSTGRES_PASSWORD: giftpassword
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U giftuser"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  cache:
+    image: redis:7-alpine
+    container_name: fullstack-cache
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+
+  backend:
+    build:
+      context: ./backend
+      target: production
+    container_name: app-todo-backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "5000:5000"
+    networks:
+      - backend
+      - frontend
+      - observability
+    environment:
+      DATABASE_URL: postgresql://giftuser:giftpassword@postgres:5432/giftdb
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://host.docker.internal:14318
+
+  frontend:
+    build: 
+      context: ./frontend
+      args:
+        REACT_APP_API_URL: ${API_URL:-http://localhost:3000/api}
+    container_name: app-todo-frontend
+    depends_on:
+      - backend
+    ports:
+      - "3000:3000"
+    networks:
+      - frontend
+    environment:
+      NEXT_PUBLIC_API_URL: http://backend:5000/api
+
+networks:
+  backend:
+    driver: bridge
+  frontend:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
